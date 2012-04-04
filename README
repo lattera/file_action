@@ -1,0 +1,4 @@
+file_action
+===========
+
+Iterates through a directory hierarchy, allowing a user to perform actions on each entry.
