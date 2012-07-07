@@ -31,10 +31,10 @@ char *AddPath(FileAction *fa, char *path) {
     fa->paths[fa->path_count] = strdup(path);
     fa->path_count++;
 
-    printf("Added path: %s\n", fa->paths[fa->path_count-1]);
+    return fa->paths[fa->path_count-1];
 }
 
-void RunAction(FileAction *fa, action_callback callback) {
+void RunAction(FileAction *fa, action_callback callback, void *callback_arguments) {
     FTSENT *p;
     char **newpaths;
 
@@ -68,7 +68,7 @@ void RunAction(FileAction *fa, action_callback callback) {
         else if (!(fa->options & FTS_LOGICAL) && p->fts_info & FTS_D)
             continue;
 
-        switch (callback(strdup(p->fts_path))) {
+        switch (callback(strdup(p->fts_path), callback_arguments)) {
             case TERMINATE:
                 fts_close(fa->fts);
                 return;
@@ -94,8 +94,9 @@ void FreeFileAction(FileAction *fa) {
         return;
 
     if ((fa->paths)) {
-        for (i=0; i<fa->path_count; i++)
-            free(fa->paths[i]);
+        for (i=0; i<=fa->path_count; i++)
+            if (fa->paths[i])
+                free(fa->paths[i]); /* Handle non-NULL-terminated arrays */
 
         free(fa->paths);
     }
@@ -105,8 +106,10 @@ void FreeFileAction(FileAction *fa) {
 
 #if defined(TESTLIB)
 
-action_return test_callback(char *path) {
+action_return test_callback(char *path, void *args) {
     printf("callback: %s\n", path);
+    remove(path);
+
     free(path);
     return CONTINUE;
 }
@@ -121,9 +124,8 @@ int main(int argc, char *argv[]) {
     for (i=1; i<argc; i++)
         AddPath(fa, argv[i]);
 
-    RunAction(fa, test_callback);
+    RunAction(fa, test_callback, NULL);
     FreeFileAction(fa);
-
 
     return 0;
 }

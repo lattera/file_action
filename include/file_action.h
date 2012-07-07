@@ -7,7 +7,7 @@
 
 typedef enum _action_return { CONTINUE=0, TERMINATE=1 } action_return;
 
-typedef action_return (*action_callback)(char *);
+typedef action_return (*action_callback)(char *, void *);
 
 typedef struct _file_action {
     char **paths;
@@ -16,5 +16,11 @@ typedef struct _file_action {
     FTS *fts;
     int options;
 } FileAction;
+
+FileAction *InitFileAction(void);
+char *AddPath(FileAction *, char *);
+void RunAction(FileAction *, action_callback, void *);
+void ToggleOption(FileAction *, int);
+void FreeFileAction(FileAction *);
 
 #endif
