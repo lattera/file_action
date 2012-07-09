@@ -49,12 +49,12 @@ void AddCallback(FileAction *fa, action_callback callback) {
     fa->callback_count++;
 }
 
-void RunAction(FileAction *fa, void *callback_arguments) {
+void RunAction(FileAction *fa, void *callback_arguments, void *output) {
     FTSENT *p;
     char **newpaths;
     size_t i;
 
-    if (!(fa) || fa->callback_count == 0)
+    if (!(fa) || fa->callback_count == 0 || fa->path_count == 0)
         return;
 
     /* Either FTS_LOGICAL or FTS_PHYSICAL needs to be set, but not both */
@@ -88,7 +88,7 @@ void RunAction(FileAction *fa, void *callback_arguments) {
             if (!(fa->callbacks[i]))
                 continue;
 
-            switch (fa->callbacks[i](p, callback_arguments)) {
+            switch (fa->callbacks[i](p, callback_arguments, output)) {
                 case TERMINATE:
                     fts_close(fa->fts);
                     return;
@@ -97,6 +97,22 @@ void RunAction(FileAction *fa, void *callback_arguments) {
     }
 
     fts_close(fa->fts);
+}
+
+void RunDefaultAction(char **paths, action_callback callback, void *arguments, void *output) {
+    FileAction *fa;
+    unsigned long i;
+    
+    fa = InitFileAction();
+    ToggleOption(fa, FTS_PHYSICAL);
+
+    for (i=0; paths[i]; i++)
+        AddPath(fa, paths[i]);
+
+    AddCallback(fa, callback);
+    RunAction(fa, arguments, output);
+
+    FreeFileAction(fa);
 }
 
 int IsOptionSet(FileAction *fa, int option) {
@@ -138,26 +154,14 @@ void FreeFileAction(FileAction *fa) {
 
 #if defined(TESTLIB)
 
-action_return test_callback(FTSENT *ent, void *args) {
+action_return test_callback(FTSENT *ent, void *args, void *output) {
     printf("callback: %s\n", ent->fts_path);
-    remove(ent->fts_path);
 
     return CONTINUE;
 }
 
-int main(int argc, char *argv[]) {
-    FileAction *fa;
-    unsigned long i;
-
-    fa = InitFileAction();
-    ToggleOption(fa, FTS_PHYSICAL);
-
-    for (i=1; i<argc; i++)
-        AddPath(fa, argv[i]);
-
-    AddCallback(fa, test_callback);
-    RunAction(fa, NULL);
-    FreeFileAction(fa);
+int main(int argc, char **argv) {
+    RunDefaultAction(&argv[1], test_callback, NULL, NULL);
 
     return 0;
 }
