@@ -34,11 +34,27 @@ char *AddPath(FileAction *fa, char *path) {
     return fa->paths[fa->path_count-1];
 }
 
-void RunAction(FileAction *fa, action_callback callback, void *callback_arguments) {
+void AddCallback(FileAction *fa, action_callback callback) {
+    action_callback *newcallbacks;
+
+    if (!(fa))
+        return;
+
+    newcallbacks = realloc(fa->callbacks, (fa->callback_count+1) * sizeof(action_callback *));
+    if (!(newcallbacks))
+        return;
+
+    fa->callbacks = newcallbacks;
+    fa->callbacks[fa->callback_count] = callback;
+    fa->callback_count++;
+}
+
+void RunAction(FileAction *fa, void *callback_arguments) {
     FTSENT *p;
     char **newpaths;
+    size_t i;
 
-    if (!(fa) || !(callback))
+    if (!(fa) || fa->callback_count == 0)
         return;
 
     /* Either FTS_LOGICAL or FTS_PHYSICAL needs to be set, but not both */
@@ -68,10 +84,15 @@ void RunAction(FileAction *fa, action_callback callback, void *callback_argument
         else if (!(fa->options & FTS_LOGICAL) && p->fts_info & FTS_D)
             continue;
 
-        switch (callback(p, callback_arguments)) {
-            case TERMINATE:
-                fts_close(fa->fts);
-                return;
+        for (i=0; i < fa->callback_count; i++) {
+            if (!(fa->callbacks[i]))
+                continue;
+
+            switch (fa->callbacks[i](p, callback_arguments)) {
+                case TERMINATE:
+                    fts_close(fa->fts);
+                    return;
+            }
         }
     }
 
@@ -109,6 +130,9 @@ void FreeFileAction(FileAction *fa) {
         free(fa->paths);
     }
 
+    if ((fa->callbacks))
+        free(fa->callbacks);
+
     free(fa);
 }
 
@@ -131,7 +155,8 @@ int main(int argc, char *argv[]) {
     for (i=1; i<argc; i++)
         AddPath(fa, argv[i]);
 
-    RunAction(fa, test_callback, NULL);
+    AddCallback(fa, test_callback);
+    RunAction(fa, NULL);
     FreeFileAction(fa);
 
     return 0;
