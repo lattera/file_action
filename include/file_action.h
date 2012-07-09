@@ -7,7 +7,7 @@
 
 typedef enum _action_return { CONTINUE=0, TERMINATE=1 } action_return;
 
-typedef action_return (*action_callback)(char *, void *);
+typedef action_return (*action_callback)(FTSENT *, void *);
 
 typedef struct _file_action {
     char **paths;

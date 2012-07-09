@@ -68,7 +68,7 @@ void RunAction(FileAction *fa, action_callback callback, void *callback_argument
         else if (!(fa->options & FTS_LOGICAL) && p->fts_info & FTS_D)
             continue;
 
-        switch (callback(strdup(p->fts_path), callback_arguments)) {
+        switch (callback(p, callback_arguments)) {
             case TERMINATE:
                 fts_close(fa->fts);
                 return;
@@ -114,11 +114,10 @@ void FreeFileAction(FileAction *fa) {
 
 #if defined(TESTLIB)
 
-action_return test_callback(char *path, void *args) {
-    printf("callback: %s\n", path);
-    remove(path);
+action_return test_callback(FTSENT *ent, void *args) {
+    printf("callback: %s\n", ent->fts_path);
+    remove(ent->fts_path);
 
-    free(path);
     return CONTINUE;
 }
 
