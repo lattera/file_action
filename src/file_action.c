@@ -78,10 +78,18 @@ void RunAction(FileAction *fa, action_callback callback, void *callback_argument
     fts_close(fa->fts);
 }
 
+int IsOptionSet(FileAction *fa, int option) {
+    if (!(fa))
+        return 0;
+
+    return (fa->options & option) == option;
+}
+
 void ToggleOption(FileAction *fa, int option) {
-    if (option & FTS_LOGICAL && fa->options & FTS_PHYSICAL)
+    /* Only one of these must be set at a time, not both (FTS_PHYSICAL, FTS_LOGICAL) */
+    if (option & FTS_LOGICAL && IsOptionSet(fa, FTS_PHYSICAL))
         fa->options ^= FTS_PHYSICAL;
-    else if (option & FTS_PHYSICAL && fa->options & FTS_LOGICAL)
+    else if (option & FTS_PHYSICAL && IsOptionSet(fa, FTS_LOGICAL))
         fa->options ^= FTS_LOGICAL;
 
     fa->options ^= option;

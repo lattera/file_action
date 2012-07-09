@@ -20,6 +20,7 @@ typedef struct _file_action {
 FileAction *InitFileAction(void);
 char *AddPath(FileAction *, char *);
 void RunAction(FileAction *, action_callback, void *);
+int IsOptionSet(FileAction *, int);
 void ToggleOption(FileAction *, int);
 void FreeFileAction(FileAction *);
 
